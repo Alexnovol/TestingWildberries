@@ -1,4 +1,3 @@
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.*;
@@ -13,61 +12,55 @@ import java.util.List;
 
 import static steps.asserts.Gui.*;
 import static utils.DataHelper.getChromeDriver;
+import static utils.Locators.*;
 import static utils.TimeHelper.setDelay;
 
 public class GuiTest {
 
-    @BeforeEach
-    public void setProperty() {
-        System.setProperty("webdriver.chrome.driver", "src/test/resources/chromedriver.exe");
-    }
+    private WebDriver driver = getChromeDriver();
+    private WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+    private Actions action = new Actions(driver);
+    private final String LINK = "https://www.wildberries.ru/";
 
     @Test
     @DisplayName("Проверка поисковой строки")
     public void checkSearchString() {
 
-        WebDriver driver = getChromeDriver();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-
-        driver.get("https://www.wildberries.ru/");
+        driver.get(LINK);
 
         try {
 
             /* Ожидание загрузки элемента, после загрузки которого можно взаимодействовать с другими
             элементами
              */
-            wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@class='main-page__content']//article[1]")));
+            wait.until(ExpectedConditions.elementToBeClickable(By.xpath(XPATH_MAIN_PAGE_CONTENT)));
 
-            WebElement searchInput = driver.findElement(By.id("searchInput"));
+            WebElement searchInput = driver.findElement(By.id(ID_SEARCH_INPUT));
             searchInput.click();
             searchInput.sendKeys("Iphone 13");
             searchInput.sendKeys(Keys.ENTER);
 
-            String titleResults = driver.findElement(By.className("searching-results__title")).getText();
+            String titleResults = driver.findElement(By.className(CLASS_TITLE_RESULTS)).getText();
 
             shouldBeEquals("По запросу Iphone 13 найдено", titleResults);
 
-            String firstFilter = driver.findElement(
-                            By.xpath("//*[@class='filters-block__dropdown j-filtres-container']/div[@class='dropdown-filter'][1]/button"))
+            String firstFilter = driver.findElement(By.xpath(XPATH_FIRST_FILTER))
                     .getText();
 
             shouldBeEquals("iphone 13", firstFilter);
 
-            String secondFilter = driver.findElement(
-                            By.xpath("//*[@class='filters-block__dropdown j-filtres-container']/div[@class='dropdown-filter'][2]/button"))
+            String secondFilter = driver.findElement(By.xpath(XPATH_SECOND_FILTER))
                     .getText();
 
             shouldBeEquals("По популярности", secondFilter);
 
             String firstProductBrand = driver.findElement(
-                            By.xpath("//*[@class='product-card-list']/article[1]//span[@class='product-card__brand']"))
+                    By.xpath(XPATH_FIRST_PRODUCT + XPATH_BRAND_FIRST_PRODUCT))
                     .getText();
 
             shouldBeEquals("Apple", firstProductBrand);
 
-            driver.findElement(
-                            By.cssSelector(".search-catalog__btn.search-catalog__btn--clear.search-catalog__btn--active"))
+            driver.findElement(By.cssSelector(CSS_BUTTON_CLEAR_SEARCH_FIELD))
                     .click();
 
             String valueSearchInput = searchInput.getAttribute("value");
@@ -84,21 +77,17 @@ public class GuiTest {
     @DisplayName("Проверка смены города")
     public void checkChangeCity() {
 
-        WebDriver driver = getChromeDriver();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-
-        driver.get("https://www.wildberries.ru/");
+        driver.get(LINK);
 
         try {
 
             /* Ожидание загрузки элемента, после загрузки которого можно взаимодействовать с другими
             элементами
              */
-            wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@class='main-page__content']//article[1]")));
+            wait.until(ExpectedConditions.elementToBeClickable(By.xpath(XPATH_MAIN_PAGE_CONTENT)));
 
             WebElement changeCity = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//span[@data-wba-header-name='DLV_Adress']")));
+                    By.xpath(XPATH_BUTTON_CHANGE_CITY)));
             changeCity.click();
 
             /* По непонятным причинам, иногда страница с вводом города открывается, но не загружается
@@ -109,40 +98,41 @@ public class GuiTest {
             while (searchInput == null) {
                 try {
                     searchInput = wait.until(
-                            ExpectedConditions.elementToBeClickable(
-                                    By.xpath("//input[@placeholder='Введите адрес' and @autocomplete]")));
+                            ExpectedConditions.elementToBeClickable(By.xpath(XPATH_ADDRESS_ENTRY)));
                     searchInput.click();
                     searchInput.sendKeys("Санкт-Петербург");
                 } catch (NoSuchElementException e) {
-                    driver.findElement(By.cssSelector(".popup__close-btn.j-btn-close"))
+                    driver.findElement(By.cssSelector(CSS_BUTTON_CLOSE))
                             .click();
                     changeCity.click();
                 }
             }
 
-            driver.findElement(
-                            By.xpath("//*[@class='ymaps-2-1-79-searchbox-button ymaps-2-1-79-_pin_right ymaps-2-1-79-user-selection-none']/ymaps"))
+            driver.findElement(By.xpath(XPATH_BUTTON_FIND))
                     .click();
 
-            setDelay(7);
+            // Ожидание загрузки любого пункта выдачи в Санкт-Петербурге
+            wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath(XPATH_ANY_DELIVERY_POINT)));
 
             WebElement firstAddress = driver.findElement(
-                    By.xpath("//*[@id='pooList']/div[1]"));
+                    By.xpath(XPATH_FIRST_DELIVERY_POINT));
             String expectedDeliveryAddress = firstAddress.findElement(
-                    By.xpath("//span[@class='address-item__name-text']/span")).getText();
+                    By.xpath(XPATH_ADDRESS_FIRST_DELIVERY_POINT)).getText();
             firstAddress.click();
 
-            shouldBePresent(driver, By.className("details-self__title"),
+            shouldBePresent(driver, By.className(CLASS_INFO_DELIVERY_POINT),
                     "Ожидалось открытие информации о центре выдачи, но ее нет");
 
-            String actualDeliveryAddress = driver.findElement(By.className("details-self__name-text")).getText();
+            String actualDeliveryAddress = driver.findElement(
+                    By.className(CLASS_ADDRESS_DELIVERY_POINT)).getText();
 
             shouldBeEquals(expectedDeliveryAddress, actualDeliveryAddress);
 
-            driver.findElement(By.cssSelector(".details-self__btn.btn-main"))
+            driver.findElement(By.cssSelector(CSS_BUTTON_SELECT_DELIVERY_POINT))
                     .click();
 
-            shouldBeAbsent(driver, By.className("details-self__title"),
+            shouldBeAbsent(driver, By.className(CLASS_INFO_DELIVERY_POINT),
                     "Ожидалось открытие главной страницы, но ее нет");
 
             shouldBeEquals(expectedDeliveryAddress, changeCity.getText());
@@ -158,55 +148,51 @@ public class GuiTest {
     @DisplayName("Добавление товара в корзину")
     public void addProductBasket() {
 
-        WebDriver driver = getChromeDriver();
-        Actions action = new Actions(driver);
         JavascriptExecutor js = (JavascriptExecutor) driver;
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
 
-        driver.get("https://www.wildberries.ru/");
+        driver.get(LINK);
 
         try {
 
             /* Ожидание загрузки элемента, после загрузки которого можно взаимодействовать с другими
             элементами
              */
-            wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@class='main-page__content']//article[1]")));
+            wait.until(ExpectedConditions.elementToBeClickable(By.xpath(XPATH_MAIN_PAGE_CONTENT)));
 
             wait.until(ExpectedConditions.elementToBeClickable(
-                            By.cssSelector(".nav-element__burger.j-menu-burger-btn.j-wba-header-item")))
+                            By.cssSelector(CSS_BUTTON_FILTERS)))
                     .click();
 
             WebElement menu = driver.findElement(
-                    By.cssSelector(".menu-burger__main.j-menu-burger-main.j-menu-active"));
+                    By.cssSelector(CSS_CATEGORY_MENU));
 
             action.moveToElement(menu).perform();
 
             WebElement houseAppliances = driver.findElement(
-                    By.cssSelector(".menu-burger__main-list-link.menu-burger__main-list-link--16107"));
+                    By.cssSelector(CSS_HOUSE_APPLIANCES));
 
             js.executeScript("arguments[0].scrollIntoView();", houseAppliances);
 
             action.moveToElement(houseAppliances).perform();
 
             driver.findElement(
-                            By.xpath("//div[@data-menu-id='16107']/div/div/ul/li[4]/span"))
+                            By.xpath(XPATH_APPLIANCES_FOR_HOUSE))
                     .click();
 
             driver.findElement(
-                            By.xpath("//div[@data-menu-id='16107']/div/div[2]/ul/li[5]/span"))
+                            By.xpath(XPATH_CATEGORY_HOOVERS_AND_STEAM_CLEANERS))
                     .click();
 
-            driver.findElement(By.xpath("//div[@data-menu-id='16107']//*[text()='Роботы-пылесосы']"))
+            driver.findElement(By.xpath(XPATH_CATEGORY_ROBOT_HOOVERS))
                     .click();
 
-            String catalogTitle = driver.findElement(By.className("catalog-title")).getText();
+            String catalogTitle = driver.findElement(By.className(CLASS_CATALOG_TITLE)).getText();
 
             shouldBeEquals("Роботы-пылесосы", catalogTitle);
 
             List<String> actualFilters = new ArrayList<>();
 
-            for (WebElement filter : driver.findElements(By.className("breadcrumbs__item"))) {
+            for (WebElement filter : driver.findElements(By.className(CLASS_FILTERS_ON_PAGE))) {
                 String sFilter = filter.findElement(By.tagName("span")).getText();
                 actualFilters.add(sFilter);
             }
@@ -217,38 +203,38 @@ public class GuiTest {
             shouldBeEquals(expectedFilters, actualFilters);
 
             WebElement firstProduct = driver.findElement(
-                    By.xpath("//*[@class='product-card-list']/article[1]"));
+                    By.xpath(XPATH_FIRST_PRODUCT));
             String productName = firstProduct.findElement(
-                    By.xpath("//*[@class='product-card__name']")).getText()
+                    By.xpath(XPATH_NAME_FIRST_PRODUCT)).getText()
                     .replace("/ ", "");
             String productPrice = firstProduct.findElement(
-                    By.xpath("//*[@class='price__wrap']/ins")).getText();
+                    By.xpath(XPATH_PRICE_FIRST_PRODUCT)).getText();
 
             WebElement inBasket = driver.findElement(
-                    By.xpath("//*[@class='product-card-list']/article[1]//*[@href='/lk/basket']"));
+                    By.xpath(XPATH_FIRST_PRODUCT + XPATH_IN_BASKET_BUTTON));
             js.executeScript("arguments[0].scrollIntoView();", inBasket);
             inBasket.click();
 
-            By countProductsBasket = By.className("navbar-pc__notify");
+            By countProductsBasket = By.className(CLASS_COUNT_PRODUCTS_BASKET);
 
             shouldBePresent(driver, countProductsBasket,
                     "Над логотипом Корзины должен был появиться счётчик товаров, но этого не произошло");
 
             shouldBeEquals("1", driver.findElement(countProductsBasket).getText());
 
-            driver.findElement(By.xpath("//*[@class='navbar-pc__item j-item-basket']/a"))
+            driver.findElement(By.xpath(XPATH_BASKET_BUTTON))
                     .click();
 
-            shouldBeEquals(productName, driver.findElement(By.className("good-info__good-name")).getText());
+            shouldBeEquals(productName, driver.findElement(By.className(CLASS_NAME_PRODUCT)).getText());
 
             setDelay(1);
 
-            shouldBeEquals(productPrice, driver.findElement(By.className("list-item__price-new")).getText());
+            shouldBeEquals(productPrice, driver.findElement(By.className(CLASS_PRICE_PRODUCT)).getText());
 
             shouldBeEquals(productPrice, driver.findElement(
-                    By.xpath("//*[@class='b-top__total line']/span[2]")).getText());
+                    By.xpath(XPATH_PRICE_TOTAL)).getText());
 
-            WebElement order = driver.findElement(By.cssSelector(".b-btn-do-order.btn-main.j-btn-confirm-order"));
+            WebElement order = driver.findElement(By.cssSelector(CSS_ORDER_BUTTON));
 
             shouldBeEquals(true, order.isEnabled());
 
@@ -265,26 +251,20 @@ public class GuiTest {
     @DisplayName("Работа с фильтрами")
     public void checkFilters() {
 
-        WebDriver driver = getChromeDriver();
-        Actions action = new Actions(driver);
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-
-        driver.get("https://www.wildberries.ru/");
+        driver.get(LINK);
 
         try {
 
             /* Ожидание загрузки элемента, после загрузки которого можно взаимодействовать с другими
             элементами
              */
-            wait.until(ExpectedConditions.elementToBeClickable(
-                    By.xpath("//*[@class='main-page__content']//article[1]")));
+            wait.until(ExpectedConditions.elementToBeClickable(By.xpath(XPATH_MAIN_PAGE_CONTENT)));
 
-            wait.until(ExpectedConditions.elementToBeClickable(
-                            By.cssSelector(".nav-element__burger.j-menu-burger-btn.j-wba-header-item")))
+            wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(CSS_BUTTON_FILTERS)))
                     .click();
 
             WebElement electronics = wait.until(ExpectedConditions.elementToBeClickable(
-                    driver.findElement(By.xpath("//li[@data-menu-id='4830']/span"))));
+                    driver.findElement(By.xpath(XPATH_ELECTRONICS_CATEGORY))));
 
             action.moveToElement(electronics).perform();
 
@@ -297,24 +277,24 @@ public class GuiTest {
             while (laptopsAndComputers == null && count < 10) {
                 count++;
                 try {
-                    laptopsAndComputers = driver.findElement(By.xpath("//div[@data-menu-id='4830']//ul/li[7]/span"));
+                    laptopsAndComputers = driver.findElement(By.xpath(XPATH_LAPTOPS_AND_COMPUTERS_CATEGORY));
                     laptopsAndComputers.click();
                 } catch (NoSuchElementException e) {
                     action.moveToElement(electronics).perform();
                 }
             }
 
-            driver.findElement(By.xpath("//div[@data-menu-id='4830']/div/div[2]/ul/li[1]/a"))
+            driver.findElement(By.xpath(XPATH_LAPTOPS_CATEGORY))
                     .click();
 
-            driver.findElement(By.cssSelector(".dropdown-filter.j-show-all-filtres"))
+            driver.findElement(By.cssSelector(CSS_BUTTON_ALL_FILTERS))
                     .click();
 
             WebElement priceFrom = driver.findElement(
-                    By.xpath("//*[@class='filter__price']/div[1]//input"));
+                    By.xpath(XPATH_FILTER_PRICE_FROM));
             priceFrom.clear();
             priceFrom.sendKeys("100 000");
-            WebElement priceTo = driver.findElement(By.xpath("//*[@class='filter__price']/div[2]//input"));
+            WebElement priceTo = driver.findElement(By.xpath(XPATH_FILTER_PRICE_TO));
             priceTo.clear();
             priceTo.sendKeys("149 000");
 
@@ -325,11 +305,11 @@ public class GuiTest {
             while (brand == null) {
                 try {
                     brand = wait.until(ExpectedConditions.elementToBeClickable(
-                            By.xpath("//*[@class='filters-desktop__item j-filter-container filters-desktop__item--type-1 filters-desktop__item--fbrand open show']//*[text()='Apple']/preceding-sibling::span")));
+                            By.xpath(XPATH_FILTER_BRAND)));
                     brand.click();
                 } catch (StaleElementReferenceException e) {
                     brand = wait.until(ExpectedConditions.elementToBeClickable(
-                            By.xpath("//*[@class='filters-desktop__item j-filter-container filters-desktop__item--type-1 filters-desktop__item--fbrand open show']//*[text()='Apple']/preceding-sibling::span")));
+                            By.xpath(XPATH_FILTER_BRAND)));
                     brand.click();
                 }
             }
@@ -338,46 +318,47 @@ public class GuiTest {
             while (diagonal == null) {
                 try {
                     diagonal = wait.until(ExpectedConditions.elementToBeClickable(
-                            By.xpath("//*[@class='filters-desktop__item j-filter-container filters-desktop__item--type-1 filters-desktop__item--f4474 open show']//*[text()='13.3\"']/preceding-sibling::span")));
+                            By.xpath(XPATH_FILTER_DIAGONAL)));
                     diagonal.click();
                 } catch (StaleElementReferenceException e) {
                     diagonal = wait.until(ExpectedConditions.elementToBeClickable(
-                            By.xpath("//*[@class='filters-desktop__item j-filter-container filters-desktop__item--type-1 filters-desktop__item--f4474 open show']//*[text()='13.3\"']/preceding-sibling::span")));
+                            By.xpath(XPATH_FILTER_DIAGONAL)));
                     diagonal.click();
                 }
             }
 
             setDelay(2);
 
-            String countProducts = driver.findElement(By.className("filters-desktop__count-goods")).getText()
+            String countProducts = driver.findElement(
+                    By.className(CLASS_COUNT_FILTERED_GOODS_IN_FILTERS)).getText()
                     .replaceAll("\\D+", "");
 
-            driver.findElement(By.cssSelector(".filters-desktop__btn-main.btn-main"))
+            driver.findElement(By.cssSelector(CSS_BUTTON_SHOWING))
                     .click();
 
             shouldBeEquals(countProducts, driver.findElement(
-                            By.xpath("//*[@class='goods-count']/span[1]")).getText()
+                            By.xpath(XPATH_COUNT_FILTERED_GOODS_ON_PAGE)).getText()
                     .replaceAll(" ", ""));
 
-            By locatorBrand = By.xpath("//*[@class='your-choice__list']/li[1]/span");
+            By locatorBrand = By.xpath(XPATH_SELECTED_FILTER_BRAND);
 
             shouldBePresent(driver, locatorBrand, "Ожидался фильтр Бренда на странице, но его нет");
 
             shouldBeEquals("Apple", driver.findElement(locatorBrand).getText());
 
-            By locatorPrice = By.xpath("//*[@class='your-choice__list']/li[2]/span");
+            By locatorPrice = By.xpath(XPATH_SELECTED_FILTER_PRICE);
 
             shouldBePresent(driver, locatorPrice, "Ожидался фильтр Цены на странице, но его нет");
 
             shouldBeEquals("от 100 000 до 149 000", driver.findElement(locatorPrice).getText());
 
-            By locatorDiagonal = By.xpath("//*[@class='your-choice__list']/li[3]/span");
+            By locatorDiagonal = By.xpath(XPATH_SELECTED_FILTER_DIAGONAL);
 
             shouldBePresent(driver, locatorDiagonal, "Ожидался фильтр Диагонали на странице, но его нет");
 
             shouldBeEquals("13.3\"", driver.findElement(locatorDiagonal).getText());
 
-            By locatorButton = By.xpath("//*[@class='your-choice__list']/li[4]/button");
+            By locatorButton = By.xpath(XPATH_BUTTON_RESET);
 
             shouldBePresent(driver, locatorButton,
                     "Ожидалась кнопка \"Сбросить все\" на странице, но ее нет");
